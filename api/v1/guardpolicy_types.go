@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,23 +26,66 @@ import (
 
 // GuardPolicySpec defines the desired state of GuardPolicy.
 type GuardPolicySpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// NamespaceSelector selects which namespaces this policy applies to.
+	// Empty selector means all namespaces.
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
-	// Foo is an example field of GuardPolicy. Edit guardpolicy_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// MaxReplicas is the maximum allowed replica count
+	// +kubebuilder:validation:Minimum=1
+	MaxReplicas int32 `json:"maxReplicas"`
+
+	// MaxCPU is the maximum CPU limit per container (e.g., "500m" or "2")
+	MaxCPU resource.Quantity `json:"maxCPU"`
+
+	// MaxMemory is the maximum memory limit per container (e.g., "512Mi" or "2Gi")
+	MaxMemory resource.Quantity `json:"maxMemory"`
+
+	// EnforceLabels are required labels that must exist on Deployments
+	// +optional
+	EnforceLabels map[string]string `json:"enforceLabels,omitempty"`
+}
+
+// ViolationRecord tracks a specific violation
+type ViolationRecord struct {
+	// DeploymentName is the name of the violating Deployment
+	DeploymentName string `json:"deploymentName"`
+
+	// Namespace is the namespace of the Deployment
+	Namespace string `json:"namespace"`
+
+	// Issues is a list of violation descriptions
+	Issues []string `json:"issues"`
+
+	// CorrectedAt is when this violation was corrected
+	CorrectedAt metav1.Time `json:"correctedAt"`
 }
 
 // GuardPolicyStatus defines the observed state of GuardPolicy.
 type GuardPolicyStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// LastCorrectedTime is when the last correction was made
+	// +optional
+	LastCorrectedTime *metav1.Time `json:"lastCorrectedTime,omitempty"`
+
+	// Violations is a list of current active violations
+	// +optional
+	Violations []ViolationRecord `json:"violations,omitempty"`
+
+	// Conditions represent the latest available observations
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster,shortName=gp
+// +kubebuilder:printcolumn:name="Max Replicas",type=integer,JSONPath=`.spec.maxReplicas`
+// +kubebuilder:printcolumn:name="Max CPU",type=string,JSONPath=`.spec.maxCPU`
+// +kubebuilder:printcolumn:name="Max Memory",type=string,JSONPath=`.spec.maxMemory`
+// +kubebuilder:printcolumn:name="Violations",type=integer,JSONPath=`.status.violations`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// GuardPolicy is the Schema for the guardpolicies API.
+// GuardPolicy is the Schema for the guardpolicies API
 type GuardPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

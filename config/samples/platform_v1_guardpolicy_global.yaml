@@ -1,0 +1,9 @@
+apiVersion: platform.demo/v1
+kind: GuardPolicy
+metadata:
+  name: global-defaults
+spec:
+  # No namespaceSelector = applies to all namespaces
+  maxReplicas: 10
+  maxCPU: "1"
+  maxMemory: "1Gi"

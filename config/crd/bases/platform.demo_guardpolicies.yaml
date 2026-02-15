@@ -11,13 +11,31 @@ spec:
     kind: GuardPolicy
     listKind: GuardPolicyList
     plural: guardpolicies
+    shortNames:
+    - gp
     singular: guardpolicy
-  scope: Namespaced
+  scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.maxReplicas
+      name: Max Replicas
+      type: integer
+    - jsonPath: .spec.maxCPU
+      name: Max CPU
+      type: string
+    - jsonPath: .spec.maxMemory
+      name: Max Memory
+      type: string
+    - jsonPath: .status.violations
+      name: Violations
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
     schema:
       openAPIV3Schema:
-        description: GuardPolicy is the Schema for the guardpolicies API.
+        description: GuardPolicy is the Schema for the guardpolicies API
         properties:
           apiVersion:
             description: |-
@@ -39,13 +57,177 @@ spec:
           spec:
             description: GuardPolicySpec defines the desired state of GuardPolicy.
             properties:
-              foo:
-                description: Foo is an example field of GuardPolicy. Edit guardpolicy_types.go
-                  to remove/update
-                type: string
+              enforceLabels:
+                additionalProperties:
+                  type: string
+                description: EnforceLabels are required labels that must exist on
+                  Deployments
+                type: object
+              maxCPU:
+                anyOf:
+                - type: integer
+                - type: string
+                description: MaxCPU is the maximum CPU limit per container (e.g.,
+                  "500m" or "2")
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              maxMemory:
+                anyOf:
+                - type: integer
+                - type: string
+                description: MaxMemory is the maximum memory limit per container (e.g.,
+                  "512Mi" or "2Gi")
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              maxReplicas:
+                description: MaxReplicas is the maximum allowed replica count
+                format: int32
+                minimum: 1
+                type: integer
+              namespaceSelector:
+                description: |-
+                  NamespaceSelector selects which namespaces this policy applies to.
+                  Empty selector means all namespaces.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - maxCPU
+            - maxMemory
+            - maxReplicas
             type: object
           status:
             description: GuardPolicyStatus defines the observed state of GuardPolicy.
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              lastCorrectedTime:
+                description: LastCorrectedTime is when the last correction was made
+                format: date-time
+                type: string
+              violations:
+                description: Violations is a list of current active violations
+                items:
+                  description: ViolationRecord tracks a specific violation
+                  properties:
+                    correctedAt:
+                      description: CorrectedAt is when this violation was corrected
+                      format: date-time
+                      type: string
+                    deploymentName:
+                      description: DeploymentName is the name of the violating Deployment
+                      type: string
+                    issues:
+                      description: Issues is a list of violation descriptions
+                      items:
+                        type: string
+                      type: array
+                    namespace:
+                      description: Namespace is the namespace of the Deployment
+                      type: string
+                  required:
+                  - correctedAt
+                  - deploymentName
+                  - issues
+                  - namespace
+                  type: object
+                type: array
             type: object
         type: object
     served: true

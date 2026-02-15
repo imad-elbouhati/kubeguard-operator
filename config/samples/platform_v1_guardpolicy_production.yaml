@@ -1,0 +1,14 @@
+apiVersion: platform.demo/v1
+kind: GuardPolicy
+metadata:
+  name: production-limits
+spec:
+  namespaceSelector:
+    matchLabels:
+      env: production
+  maxReplicas: 5
+  maxCPU: "500m"
+  maxMemory: "512Mi"
+  enforceLabels:
+    managed-by: "platform-team"
+    cost-center: "engineering"

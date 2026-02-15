@@ -1,0 +1,11 @@
+apiVersion: platform.demo/v1
+kind: GuardPolicy
+metadata:
+  name: staging-limits
+spec:
+  namespaceSelector:
+    matchLabels:
+      env: staging
+  maxReplicas: 3
+  maxCPU: "200m"
+  maxMemory: "256Mi"
