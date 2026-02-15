@@ -18,10 +18,10 @@ package controller
 
 import (
 	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -51,7 +51,11 @@ var _ = Describe("GuardPolicy Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: platformv1.GuardPolicySpec{
+						MaxReplicas: 5,
+						MaxCPU:      resource.MustParse("500m"),
+						MaxMemory:   resource.MustParse("512Mi"),
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
